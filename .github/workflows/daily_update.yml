@@ -1,0 +1,55 @@
+name: 每日市场数据更新
+
+on:
+  schedule:
+    # 每天北京时间上午9点运行（UTC+8，对应UTC时间是1点）
+    - cron: '0 1 * * *'
+  # 允许手动触发工作流
+  workflow_dispatch:
+
+jobs:
+  update-market-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v2
+        
+      - name: 设置Python环境
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+          
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests pandas numpy matplotlib seaborn statsmodels scikit-learn
+          
+      - name: 下载当前网站内容
+        run: |
+          mkdir -p static_site
+          # 使用curl下载当前网站的index.html
+          curl -o static_site/index.html https://aphnkbjn.manus.space/index.html
+          
+          # 创建资产目录
+          mkdir -p static_site/assets
+          
+          # 下载当前网站的资产文件
+          curl -o static_site/assets/correlation_heatmap.png https://aphnkbjn.manus.space/assets/correlation_heatmap.png
+          curl -o static_site/assets/overall_market_changes.png https://aphnkbjn.manus.space/assets/overall_market_changes.png
+          curl -o static_site/assets/market_volatility.png https://aphnkbjn.manus.space/assets/market_volatility.png
+          curl -o static_site/assets/美元指数_forecast.png https://aphnkbjn.manus.space/assets/美元指数_forecast.png
+          curl -o static_site/assets/纳斯达克_forecast.png https://aphnkbjn.manus.space/assets/纳斯达克_forecast.png
+          curl -o static_site/assets/10年期美债收益率_forecast.png https://aphnkbjn.manus.space/assets/10年期美债收益率_forecast.png
+          curl -o static_site/assets/30年期美债收益率_forecast.png https://aphnkbjn.manus.space/assets/30年期美债收益率_forecast.png
+          curl -o static_site/assets/黄金_forecast.png https://aphnkbjn.manus.space/assets/黄金_forecast.png
+          curl -o static_site/assets/forecast_report.md https://aphnkbjn.manus.space/assets/forecast_report.md
+      
+      - name: 运行数据收集和更新脚本
+        run: python automated_data_collector.py
+          
+      - name: 部署到GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./static_site
